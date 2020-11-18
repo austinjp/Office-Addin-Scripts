@@ -16,6 +16,14 @@ function getInstallCommand(caCertificatePath: string, machine: boolean = false):
          return `powershell -ExecutionPolicy Bypass -File "${script}" ${machine ? "LocalMachine" : "CurrentUser"} "${caCertificatePath}"`;
       case "darwin": // macOS
          return `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain '${caCertificatePath}'`;
+      case "linux":
+         if (machine) {
+            const bn = path.basename(defaults.certificateName + ".crt");
+            return `sudo cp '${caCertificatePath}' '/usr/local/share/ca-certificates/${bn}' && sudo chmod 0644 '/usr/local/share/ca-certificates/${bn}' && sudo dpkg-reconfigure ca-certificates -f noninteractive && sudo \
+update-ca-certificates`;
+         } else {
+            return `:`; // no-op for non-root user.
+         }
       default:
          throw new Error(`Platform not supported: ${process.platform}`);
    }
