@@ -15,6 +15,14 @@ function getVerifyCommand(): string {
           return `powershell -ExecutionPolicy Bypass -File "${script}" "${defaults.certificateName}"`;
        case "darwin": // macOS
           return `security find-certificate -c '${defaults.certificateName}' -p | openssl x509 -checkend 86400 -noout`;
+       case "linux":
+          let caBundleFile = undefined;
+          const caBundleFileAlts = [ "/etc/ssl/certs/ca-bundle.crt", "/etc/ssl/certs/ca-certificates.crt" ];
+          caBundleFileAlts.forEach((f) => { if (fs.existsSync(f)) { caBundleFile = path.resolve(f) } })
+          if (!caBundleFile) {
+             throw new Error(`Cannot find certificates in /etc/ssl/certs/ca-bundle.crt or /etc/ssl/certs/ca-certificates.crt`);
+          }
+          return `awk -v cmd='openssl x509 -noout -subject' '/BEGIN/{close(cmd)};{print | cmd}' < '${caBundleFile}' | grep '${defaults.certificateName}'`;
        default:
           throw new Error(`Platform not supported: ${process.platform}`);
     }
