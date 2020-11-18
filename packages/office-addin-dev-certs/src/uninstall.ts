@@ -15,6 +15,13 @@ function getUninstallCommand(machine: boolean = false): string {
          return `powershell -ExecutionPolicy Bypass -File "${script}" ${machine ? "LocalMachine" : "CurrentUser"} "${defaults.certificateName}"`;
       case "darwin": // macOS
          return `sudo security delete-certificate -c '${defaults.certificateName}'`;
+      case "linux":
+         if (machine) {
+            const bn = path.basename(defaults.certificateName + ".crt");
+            return `sudo rm '/usr/local/share/ca-certificates/${bn}' && sudo dpkg-reconfigure ca-certificates -f noninteractive && sudo update-ca-certificates`;
+         } else {
+            return `:`; // no-op for non-root user.
+         }
       default:
          throw new Error(`Platform not supported: ${process.platform}`);
    }
